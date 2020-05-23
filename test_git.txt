@@ -1,3 +1,4 @@
+<<<<<<< HEAD
 generando
 
 archivo
@@ -11,3 +12,19 @@ mismo
 nombre
 
 test_git.txt
+=======
+hola
+
+luigy
+
+esto 
+
+es
+
+una
+
+prueba
+
+de github
+
+>>>>>>> 320452dd34b8b6e886efc6e52aa316d099648402
