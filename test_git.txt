@@ -1,0 +1,13 @@
+generando
+
+archivo
+
+con 
+
+el
+
+mismo
+
+nombre
+
+test_git.txt
