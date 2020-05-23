@@ -87,5 +87,5 @@ def train_step(image_data, target):
 for epoch in range(cfg.TRAIN.EPOCHS):
     for image_data, target in trainset:
         train_step(image_data, target)
-    model.save_weights("./yolov3")
+    model.save_weights("train_weights_1class/yolov3-{:03d}".format(epoch))
 

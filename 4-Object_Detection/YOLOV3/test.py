@@ -25,15 +25,20 @@ INPUT_SIZE   = 416
 NUM_CLASS    = len(utils.read_class_names(cfg.YOLO.CLASSES))
 CLASSES      = utils.read_class_names(cfg.YOLO.CLASSES)
 
-predicted_dir_path = '../mAP/predicted'
-ground_truth_dir_path = '../mAP/ground-truth'
+predicted_dir_path = './results/predicted'
+ground_truth_dir_path = './results/ground-truth'
+imgs_dir_path = './results/imgs'
+
+if not os.path.exists(cfg.TEST.DECTECTED_IMAGE_PATH): print("error dont exist %"%cfg.TEST.DECTECTED_IMAGE_PATH)
+
 if os.path.exists(predicted_dir_path): shutil.rmtree(predicted_dir_path)
 if os.path.exists(ground_truth_dir_path): shutil.rmtree(ground_truth_dir_path)
-if os.path.exists(cfg.TEST.DECTECTED_IMAGE_PATH): shutil.rmtree(cfg.TEST.DECTECTED_IMAGE_PATH)
+if os.path.exists(imgs_dir_path): shutil.rmtree(imgs_dir_path)
+# if not os.path.exists(cfg.TEST.DECTECTED_IMAGE_PATH): print("error  dont exist cfg.TEST.DECTECTED_IMAGE_PATH"); exit(1);
 
+os.mkdir(imgs_dir_path)
 os.mkdir(predicted_dir_path)
 os.mkdir(ground_truth_dir_path)
-os.mkdir(cfg.TEST.DECTECTED_IMAGE_PATH)
 
 # Build Model
 input_layer  = tf.keras.layers.Input([INPUT_SIZE, INPUT_SIZE, 3])
@@ -45,7 +50,9 @@ for i, fm in enumerate(feature_maps):
     bbox_tensors.append(bbox_tensor)
 
 model = tf.keras.Model(input_layer, bbox_tensors)
-model.load_weights("./yolov3")
+# model.load_weights("./yolov3")
+model.load_weights("./yolov3-099")
+# model.load_weights("/home/luigy/luigy/petrobras/luigy/tf2-yolov3/4-Object_Detection/YOLOV3/train_weights/yolov3_99")
 
 with open(cfg.TEST.ANNOT_PATH, 'r') as annotation_file:
     for num, line in enumerate(annotation_file):
@@ -53,7 +60,8 @@ with open(cfg.TEST.ANNOT_PATH, 'r') as annotation_file:
         image_path = annotation[0]
         image_name = image_path.split('/')[-1]
         image = cv2.imread(image_path)
-        image = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
+        # image = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
+        image = cv2.cvtColor(image, cv2.COLOR_RGB2BGR)
         bbox_data_gt = np.array([list(map(int, box.split(','))) for box in annotation[1:]])
 
         if len(bbox_data_gt) == 0:
@@ -61,7 +69,9 @@ with open(cfg.TEST.ANNOT_PATH, 'r') as annotation_file:
             classes_gt=[]
         else:
             bboxes_gt, classes_gt = bbox_data_gt[:, :4], bbox_data_gt[:, 4]
-        ground_truth_path = os.path.join(ground_truth_dir_path, str(num) + '.txt')
+        # ground_truth_path = os.path.join(ground_truth_dir_path, str(num) + '.txt')
+        # ground_truth_path = os.path.join(ground_truth_dir_path, str(num)+"_"+os.path.splitext(image_name)[0]+'.txt')
+        ground_truth_path = os.path.join(ground_truth_dir_path, os.path.splitext(image_name)[0]+'.txt')
 
         print('=> ground truth of %s:' % image_name)
         num_bbox_gt = len(bboxes_gt)
@@ -73,7 +83,10 @@ with open(cfg.TEST.ANNOT_PATH, 'r') as annotation_file:
                 f.write(bbox_mess)
                 print('\t' + str(bbox_mess).strip())
         print('=> predict result of %s:' % image_name)
-        predict_result_path = os.path.join(predicted_dir_path, str(num) + '.txt')
+        # predict_result_path = os.path.join(predicted_dir_path, str(num) + '.txt')
+        # predict_result_path = os.path.join(predicted_dir_path, str(num)+"_"+os.path.splitext(image_name)[0]+'.txt')
+        predict_result_path = os.path.join(predicted_dir_path, os.path.splitext(image_name)[0]+'.txt')
+        
         # Predict Process
         image_size = image.shape[:2]
         image_data = utils.image_preporcess(np.copy(image), [INPUT_SIZE, INPUT_SIZE])
@@ -86,9 +99,10 @@ with open(cfg.TEST.ANNOT_PATH, 'r') as annotation_file:
         bboxes = utils.nms(bboxes, cfg.TEST.IOU_THRESHOLD, method='nms')
 
 
-        if cfg.TEST.DECTECTED_IMAGE_PATH is not None:
+        if imgs_dir_path is not None:
             image = utils.draw_bbox(image, bboxes)
-            cv2.imwrite(cfg.TEST.DECTECTED_IMAGE_PATH+image_name, image)
+            image = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
+            cv2.imwrite(os.path.join(imgs_dir_path,image_name), image)
 
         with open(predict_result_path, 'w') as f:
             for bbox in bboxes:
