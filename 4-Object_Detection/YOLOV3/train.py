@@ -22,8 +22,23 @@ from core.dataset import Dataset
 from core.yolov3 import YOLOv3, decode, compute_loss
 from core.config import cfg
 
+import json
+
+path_save_weights = cfg.TRAIN.DIR_train
+# path_save_weights= 'train_weights_1class_with_DAug_v8/'
+
+
+
+
+
+if not os.path.isdir(path_save_weights):
+    os.makedirs(path_save_weights)
 trainset = Dataset('train')
-logdir = "./data/log"
+logdir = os.path.join(path_save_weights,'data/log')
+
+if not os.path.isdir(logdir):
+    os.makedirs(logdir)
+
 steps_per_epoch = len(trainset)
 global_steps = tf.Variable(1, trainable=False, dtype=tf.int64)
 warmup_steps = cfg.TRAIN.WARMUP_EPOCHS * steps_per_epoch
@@ -43,7 +58,8 @@ optimizer = tf.keras.optimizers.Adam()
 if os.path.exists(logdir): shutil.rmtree(logdir)
 writer = tf.summary.create_file_writer(logdir)
 
-def train_step(image_data, target):
+
+def train_step(image_data, target,file):
     with tf.GradientTape() as tape:
         pred_result = model(image_data, training=True)
         giou_loss=conf_loss=prob_loss=0
@@ -61,10 +77,13 @@ def train_step(image_data, target):
         gradients = tape.gradient(total_loss, model.trainable_variables)
         optimizer.apply_gradients(zip(gradients, model.trainable_variables))
         tf.print("=> STEP %4d   lr: %.6f   giou_loss: %4.2f   conf_loss: %4.2f   "
-                 "prob_loss: %4.2f   total_loss: %4.2f" %(global_steps, optimizer.lr.numpy(),
+                 "prob_loss: %4.2f   total_loss: %4.2f " %(global_steps, optimizer.lr.numpy(),
                                                           giou_loss, conf_loss,
                                                           prob_loss, total_loss))
-        # update learning rate
+        file.write("=> STEP %4d   lr: %.6f   giou_loss: %4.2f   conf_loss: %4.2f   "
+                 "prob_loss: %4.2f   total_loss: %4.2f \n" %(global_steps, optimizer.lr.numpy(),
+                                                          giou_loss, conf_loss,
+                                                          prob_loss, total_loss))       # update learning rate
         global_steps.assign_add(1)
         if global_steps < warmup_steps:
             lr = global_steps / warmup_steps *cfg.TRAIN.LR_INIT
@@ -84,8 +103,27 @@ def train_step(image_data, target):
         writer.flush()
 
 
-for epoch in range(cfg.TRAIN.EPOCHS):
-    for image_data, target in trainset:
-        train_step(image_data, target)
-    model.save_weights("train_weights_1class/yolov3-{:03d}".format(epoch))
+
+
+file_parameters = os.path.join(path_save_weights,"file_parameters_train.txt")
+file_console_outputs = os.path.join(path_save_weights,"file_console_outputs.txt")
+with open(file_parameters, "w") as file:
+    file.write(json.dumps(cfg, indent=4))
+
+
+
+with open(file_console_outputs,"w") as file2:
+    for epoch in range(cfg.TRAIN.EPOCHS):
+        for image_data, target in trainset:
+            train_step(image_data, target,file2)
+        # model.save_weights("train_weights_1class_with_DAug_v5/yolov3-{:03d}".format(epoch))
+        print("/////////////////////////////////////////////////////////////////////")
+        print("///////////////////////save epoch {:03d}".format(epoch+1))
+        print("/////////////////////////////////////////////////////////////////////")
+        
+        file2.write("/////////////////////////////////////////////////////////////////////\n")
+        file2.write("///////////////////////save epoch {:03d} \n".format(epoch+1))
+        file2.write("/////////////////////////////////////////////////////////////////////\n")
+        if (epoch+1)%cfg.TRAIN.SAVE_WEIGTHS_EVERY_EPOCHS == 0:
+            model.save_weights(os.path.join(path_save_weights,"yolov3-{:03d}epoch".format(epoch+1)))
 

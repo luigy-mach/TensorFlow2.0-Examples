@@ -25,20 +25,33 @@ INPUT_SIZE   = 416
 NUM_CLASS    = len(utils.read_class_names(cfg.YOLO.CLASSES))
 CLASSES      = utils.read_class_names(cfg.YOLO.CLASSES)
 
-predicted_dir_path = './results/predicted'
-ground_truth_dir_path = './results/ground-truth'
-imgs_dir_path = './results/imgs'
+
+DIR_RESULTS = cfg.TRAIN.DIR_train
+
+predicted_dir_path = 'results/predicted'
+ground_truth_dir_path = 'results/ground-truth'
+imgs_dir_path = 'results/imgs'
+imgs_clean_dir_path = 'results/imgs_clean'
+
+
+predicted_dir_path = os.path.join(DIR_RESULTS,predicted_dir_path)
+ground_truth_dir_path = os.path.join(DIR_RESULTS,ground_truth_dir_path)
+imgs_dir_path = os.path.join(DIR_RESULTS,imgs_dir_path)
+imgs_clean_dir_path = os.path.join(DIR_RESULTS,imgs_clean_dir_path)
+
 
 if not os.path.exists(cfg.TEST.DECTECTED_IMAGE_PATH): print("error dont exist %"%cfg.TEST.DECTECTED_IMAGE_PATH)
 
 if os.path.exists(predicted_dir_path): shutil.rmtree(predicted_dir_path)
 if os.path.exists(ground_truth_dir_path): shutil.rmtree(ground_truth_dir_path)
 if os.path.exists(imgs_dir_path): shutil.rmtree(imgs_dir_path)
+if os.path.exists(imgs_clean_dir_path): shutil.rmtree(imgs_clean_dir_path)
 # if not os.path.exists(cfg.TEST.DECTECTED_IMAGE_PATH): print("error  dont exist cfg.TEST.DECTECTED_IMAGE_PATH"); exit(1);
 
-os.mkdir(imgs_dir_path)
-os.mkdir(predicted_dir_path)
-os.mkdir(ground_truth_dir_path)
+os.makedirs(imgs_dir_path)
+os.makedirs(predicted_dir_path)
+os.makedirs(ground_truth_dir_path)
+os.makedirs(imgs_clean_dir_path)
 
 # Build Model
 input_layer  = tf.keras.layers.Input([INPUT_SIZE, INPUT_SIZE, 3])
@@ -51,7 +64,7 @@ for i, fm in enumerate(feature_maps):
 
 model = tf.keras.Model(input_layer, bbox_tensors)
 # model.load_weights("./yolov3")
-model.load_weights("./yolov3-099")
+model.load_weights(os.path.join(DIR_RESULTS,'yolov3-480epoch'))
 # model.load_weights("/home/luigy/luigy/petrobras/luigy/tf2-yolov3/4-Object_Detection/YOLOV3/train_weights/yolov3_99")
 
 with open(cfg.TEST.ANNOT_PATH, 'r') as annotation_file:
@@ -95,11 +108,33 @@ with open(cfg.TEST.ANNOT_PATH, 'r') as annotation_file:
         pred_bbox = model.predict(image_data)
         pred_bbox = [tf.reshape(x, (-1, tf.shape(x)[-1])) for x in pred_bbox]
         pred_bbox = tf.concat(pred_bbox, axis=0)
+
+        # print("***************************************")
+        # print(type(pred_bbox))
+        # print("***************************************")
+        # pred_bbox2 = np.array(pred_bbox)
+        # print(type(pred_bbox2))
+        # print(pred_bbox2.shape)
+        # print(pred_bbox2)
+        # print("***************************************")
+        # print(pred_bbox, image_size, INPUT_SIZE, cfg.TEST.SCORE_THRESHOLD)
+        pred_xywh = pred_bbox[:,0:4]
+        print(pred_xywh)
+        pred_conf = pred_bbox[:,4]
+        print(pred_conf)
+        pred_prob = pred_bbox[:,5:]
+        print(pred_prob)
+        print("***************************************")
         bboxes = utils.postprocess_boxes(pred_bbox, image_size, INPUT_SIZE, cfg.TEST.SCORE_THRESHOLD)
         bboxes = utils.nms(bboxes, cfg.TEST.IOU_THRESHOLD, method='nms')
 
 
         if imgs_dir_path is not None:
+            # temp = list(map(int, bboxes_gt[i]))
+            # temp.append
+            # image = utils.draw_bbox_gt(image, list(map(int, bboxes_gt[i])), classes_gt)
+            cv2.imwrite(os.path.join(imgs_clean_dir_path,image_name), cv2.cvtColor(image, cv2.COLOR_BGR2RGB))
+
             image = utils.draw_bbox(image, bboxes)
             image = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
             cv2.imwrite(os.path.join(imgs_dir_path,image_name), image)

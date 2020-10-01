@@ -104,7 +104,9 @@ def draw_bbox(image, bboxes, classes=read_class_names(cfg.YOLO.CLASSES), show_la
     """
     bboxes: [x_min, y_min, x_max, y_max, probability, cls_id] format coordinates.
     """
-
+    # print(bboxes)
+    # print(type(bboxes))
+    # print(len(bboxes))
     num_classes = len(classes)
     image_h, image_w, _ = image.shape
     hsv_tuples = [(1.0 * x / num_classes, 1., 1.) for x in range(num_classes)]
@@ -135,7 +137,46 @@ def draw_bbox(image, bboxes, classes=read_class_names(cfg.YOLO.CLASSES), show_la
 
     return image
 
+def draw_bbox_gt(image, bboxes,class_gt, classes=read_class_names(cfg.YOLO.CLASSES), show_label=True):
+    """
+    bboxes: [x_min, y_min, x_max, y_max, cls_id] format coordinates.
+    """
+    # print(bboxes)
+    # print(type(bboxes))
+    # print(len(bboxes))
+    print(class_gt)
+    print(type(class_gt))
+    print(len(class_gt))
+    num_classes = len(classes)
+    image_h, image_w, _ = image.shape
+    hsv_tuples = [(1.0 * x / num_classes, 1., 1.) for x in range(num_classes)]
+    colors = list(map(lambda x: colorsys.hsv_to_rgb(*x), hsv_tuples))
+    colors = list(map(lambda x: (int(x[0] * 255), int(x[1] * 255), int(x[2] * 255)), colors))
 
+    random.seed(0)
+    random.shuffle(colors)
+    random.seed(None)
+
+    for i, bbox in enumerate(bboxes):
+        # coor = np.array(bbox[:4], dtype=np.int32)
+        coor = bbox
+        fontScale = 0.2
+        # score = bbox[4]
+        class_ind = class_gt[0]
+        bbox_color = colors[class_ind]
+        bbox_thick = int(0.6 * (image_h + image_w) / 600)
+        c1, c2 = (coor[0], coor[1]), (coor[2], coor[3])
+        cv2.rectangle(image, c1, c2, bbox_color, bbox_thick)
+
+        # if show_label:
+        #     bbox_mess = '%s: %.2f' % (classes[class_ind], score)
+        #     t_size = cv2.getTextSize(bbox_mess, 0, fontScale, thickness=bbox_thick//2)[0]
+        #     cv2.rectangle(image, c1, (c1[0] + t_size[0], c1[1] - t_size[1] - 3), bbox_color, -1)  # filled
+
+        #     cv2.putText(image, bbox_mess, (c1[0], c1[1]-2), cv2.FONT_HERSHEY_SIMPLEX,
+        #                 fontScale, (0, 0, 0), bbox_thick//2, lineType=cv2.LINE_AA)
+
+    return image
 
 def bboxes_iou(boxes1, boxes2):
 
@@ -198,10 +239,11 @@ def postprocess_boxes(pred_bbox, org_img_shape, input_size, score_threshold):
 
     valid_scale=[0, np.inf]
     pred_bbox = np.array(pred_bbox)
+    # pred_bbox = pred_bbox.numpy()
 
-    pred_xywh = pred_bbox[:, 0:4]
-    pred_conf = pred_bbox[:, 4]
-    pred_prob = pred_bbox[:, 5:]
+    pred_xywh = pred_bbox[:,0:4]
+    pred_conf = pred_bbox[:,4]
+    pred_prob = pred_bbox[:,5:]
 
     # # (1) (x, y, w, h) --> (xmin, ymin, xmax, ymax)
     pred_coor = np.concatenate([pred_xywh[:, :2] - pred_xywh[:, 2:] * 0.5,
