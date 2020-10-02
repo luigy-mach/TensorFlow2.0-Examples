@@ -7,7 +7,9 @@ import time
 from PIL import Image
 import shutil
 
-    
+from core.config import cfg
+
+
 def openfilebox(bbox_txt):
     _list=[]
     if os.path.isfile(bbox_txt):
@@ -40,7 +42,7 @@ def drawOnImgs(path_imgs, dir_groundtruth, dir_predict, path_output,draw_text=Tr
     if os.path.exists(path_output):
         # print("error dont exist %"%path_imgs)
         shutil.rmtree(path_output)
-    os.mkdir(path_output)
+    os.makedirs(path_output)
     
 
     imgs = os.listdir(path_imgs)
@@ -69,8 +71,8 @@ def drawOnImgs(path_imgs, dir_groundtruth, dir_predict, path_output,draw_text=Tr
         if len(_list_gt)>0:
             for coor in _list_gt:
                 # bbox_color_gt = (0, 255, 0) # verde (BGR)
-                bbox_color_gt = (204, 255, 0) # verde (BGR)
-                bbox_thick_gt = 2
+                bbox_color_gt = (0, 255, 0) # verde (BGR)
+                bbox_thick_gt = 1
                 text_thickness_gt = 0.6
                 # c1_gt, c2_gt = (int(float(coor[0])), int(float(coor[1]))), (int(float(coor[2])), int(float(coor[3])))
                 coor1, coor2, coor3, coor4 = int(float(coor [0])), int(float(coor[1])), int(float(coor[2])), int(float(coor[3]))
@@ -86,24 +88,25 @@ def drawOnImgs(path_imgs, dir_groundtruth, dir_predict, path_output,draw_text=Tr
                     cv2.putText(image, namelabel, (coor1, coor2), cv2.FONT_HERSHEY_SIMPLEX, text_thickness_gt, bbox_color_gt, 2)
 
 
-        # if len(_list_dt)>0:
-        #     for coor in _list_dt:
-        #         bbox_color_dt = (255, 0, 0) #verde (BGR)
-        #         bbox_thick_dt = 2
-        #         text_thickness_dt = 0.6
-        #         # c1_dt, c2_dt = (int(float(coor[1])), int(float(coor[2]))), (int(float(coor[3])), int(float(coor[4])))
-        #         coor1, coor2, coor3, coor4 = int(float(coor[1])), int(float(coor[2])), int(float(coor[3])), int(float(coor[4]))
-        #         # print('dt.....1')
-        #         # print(coor1, coor2, coor3, coor4)
-        #         # print('dt.....2')
-        #         c1_dt, c2_dt = ((coor1, coor2),(coor3, coor4))
-        #         # c1_dt, c2_dt = (int(coor[1]), int(coor[2])), (int(coor[3]), int(coor[4]))
-        #         cv2.rectangle(image, c1_dt, c2_dt, bbox_color_dt, bbox_thick_dt)
-        #         if draw_text:
-        #             # namelabel = 'detection'
-        #             namelabel = 'dt'
-        #             # cv2.putText(image, namelabel, (coor1, coor2-10), cv2.FONT_HERSHEY_SIMPLEX, text_thickness_dt, bbox_color_dt, 2)
-        #             cv2.putText(image, namelabel, (coor1, coor2), cv2.FONT_HERSHEY_SIMPLEX, text_thickness_dt, bbox_color_dt, 2)
+        if len(_list_dt)>0:
+            for coor in _list_dt:
+                bbox_color_dt = (0, 0, 255) #verde (BGR)
+                bbox_thick_dt = 1
+                text_thickness_dt = 0.6
+                # c1_dt, c2_dt = (int(float(coor[1])), int(float(coor[2]))), (int(float(coor[3])), int(float(coor[4])))
+                score_confidence = float(coor[0])
+                coor1, coor2, coor3, coor4 = int(float(coor[1])), int(float(coor[2])), int(float(coor[3])), int(float(coor[4]))
+                # print('dt.....1')
+                # print(coor1, coor2, coor3, coor4)
+                # print('dt.....2')
+                c1_dt, c2_dt = ((coor1, coor2),(coor3, coor4))
+                # c1_dt, c2_dt = (int(coor[1]), int(coor[2])), (int(coor[3]), int(coor[4]))
+                cv2.rectangle(image, c1_dt, c2_dt, bbox_color_dt, bbox_thick_dt)
+                if draw_text:
+                    # namelabel = 'detection'
+                    namelabel = 'detec {:.3f}'.format(score_confidence)
+                    # cv2.putText(image, namelabel, (coor1, coor2-10), cv2.FONT_HERSHEY_SIMPLEX, text_thickness_dt, bbox_color_dt, 2)
+                    cv2.putText(image, namelabel, (coor1, coor2), cv2.FONT_HERSHEY_SIMPLEX, text_thickness_dt, bbox_color_dt, 2)
 
         cv2.imwrite(os.path.join(path_output,img), image) 
 
@@ -112,12 +115,13 @@ def drawOnImgs(path_imgs, dir_groundtruth, dir_predict, path_output,draw_text=Tr
 
 if __name__ == '__main__':
     
+    path_save_weights = cfg.TRAIN.DIR_train
 
-    groundtruth_dir_path = './results/ground-truth'
-    predicted_dir_path = './results/predicted'
-    imgs_dir_path = './results/imgs'
+    groundtruth_dir_path = os.path.join(path_save_weights,'./results/ground-truth')
+    predicted_dir_path = os.path.join(path_save_weights,'./results/predicted')
+    imgs_dir_path = os.path.join(path_save_weights,'./results/imgs_clean')
 
-    drawBB_dir_path = './results/drawBB_imgs'
+    drawBB_dir_path = os.path.join(path_save_weights,'./results/drawBB_imgs')
 
 
     drawOnImgs(imgs_dir_path, groundtruth_dir_path, predicted_dir_path, drawBB_dir_path)
